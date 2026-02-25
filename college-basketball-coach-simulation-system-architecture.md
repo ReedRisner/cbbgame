@@ -2,6 +2,11 @@
 ## Complete System Architecture & Game Design Document
 ### Version 1.0 | February 2026
 
+Frontend - React + Tailwind - TypeScript
+Backend/API  - Node.js (Express or Fastify) - TypeScript
+Simulation Engine - Same backend - TypeScript
+Database - PostgreSQL + PrismaSQL
+
 ---
 
 > **How to use this document:** This blueprint is divided into **6 development phases**. Each phase is self-contained. You can hand any phase to an AI or developer and say *"Build Phase 1"* and they will have everything they need — schemas, formulas, logic, and system interactions.
