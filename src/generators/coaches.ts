@@ -46,7 +46,8 @@ export function generateCoachesForTeams(teams: Team[]): { heads: any[]; assistan
       careerLosses: Math.round(clampedNormal(160, 80, 0, 700)),
       careerTournamentWins: Math.round(clampedNormal(team.currentPrestige / 2, 8, 0, 90)),
       hiringSeason: 1,
-      parentCoachId: teamIndex > 0 ? Math.max(1, Math.floor(teamIndex * 0.35)) : null
+      // Assigned later by a dedicated coaching-tree pipeline to avoid FK issues across reseeds.
+      parentCoachId: null
     });
   });
 

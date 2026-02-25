@@ -17,11 +17,15 @@ export function weightedChoice<T>(options: T[], weights: number[]): T {
   }
 
   const total = weights.reduce((sum, w) => sum + w, 0);
-  const roll = normalRandom(total / 2, total / 6);
+  if (total <= 0) {
+    throw new Error('Total weight must be greater than zero.');
+  }
+
+  const roll = Math.random() * total;
   let running = 0;
   for (let i = 0; i < options.length; i += 1) {
     running += weights[i];
-    if (roll <= running) {
+    if (roll < running) {
       return options[i];
     }
   }
