@@ -1,0 +1,474 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TeamTier {
+  POWER4
+  UPPER_MID
+  MID
+  LOW_MAJOR
+}
+
+enum Position {
+  PG
+  SG
+  SF
+  PF
+  C
+}
+
+enum ClassYear {
+  FR
+  SO
+  JR
+  SR
+  GR
+}
+
+enum RecruitType {
+  HS
+  JUCO
+  INTERNATIONAL
+}
+
+enum DevelopmentCurve {
+  EARLY_BLOOMER
+  STANDARD
+  LATE_BLOOMER
+  BUST
+  FREAK_LEAP
+}
+
+enum CoachRole {
+  HEAD
+  OC
+  DC
+  RECRUITING_COORDINATOR
+  PLAYER_DEVELOPMENT
+}
+
+model Conference {
+  id                     Int      @id @default(autoincrement())
+  name                   String   @unique
+  shortName              String?
+  tier                   TeamTier
+  prestige               Float
+  mediaDealValue         Float
+  tournamentFormat       String
+  autoBidValue           Float
+  memberCount            Int
+  tourneySuccess         Float    @default(50)
+  historicalWeight       Float    @default(50)
+  teams                  Team[]
+  rankingsHistory        RankingsHistory[]
+  membershipHistory      ConferenceMembershipHistory[]
+  schedules              Schedule[]
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model Team {
+  id                          Int      @id @default(autoincrement())
+  name                        String   @unique
+  abbreviation                String?
+  mascot                      String?
+  conferenceId                Int
+  conference                  Conference @relation(fields: [conferenceId], references: [id])
+  currentPrestige             Float
+  historicalPrestige          Float
+  facilityRating              Float
+  nilCollectiveStrength       Float
+  boosterBudget               Float
+  mediaMarket                 Float
+  fanIntensity                Float
+  arenaCapacity               Int
+  academicRating              Float
+  primaryColor                String?
+  secondaryColor              String?
+  rivalries                   Json
+  tourneySuccessScore         Float   @default(50)
+  mediaBuzz                   Float   @default(50)
+  underperformanceYears       Int     @default(0)
+  rolling10YearPrestige       Float   @default(50)
+  players                     Player[]
+  coaches                     Coach[]
+  gameLogs                    GameLog[] @relation("HomeTeam")
+  awayGameLogs                GameLog[] @relation("AwayTeam")
+  recruits                    Recruit[]
+  nilContracts                NilContract[]
+  transfersIn                 Transfer[] @relation("TransferToTeam")
+  transfersOut                Transfer[] @relation("TransferFromTeam")
+  awards                      Award[]
+  seasonRecords               SeasonRecord[]
+  coachingChanges             CoachingChange[]
+  conferenceMembershipHistory ConferenceMembershipHistory[]
+  sanctions                   Sanction[]
+  draftHistory                DraftHistory[]
+  homeSchedules               Schedule[] @relation("ScheduleHome")
+  awaySchedules               Schedule[] @relation("ScheduleAway")
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+model Player {
+  id                  Int      @id @default(autoincrement())
+  teamId              Int
+  team                Team     @relation(fields: [teamId], references: [id])
+  firstName           String
+  lastName            String
+  hometown            String
+  state               String
+  country             String
+  position            Position
+  classYear           ClassYear
+  age                 Int
+  heightInches        Int
+  weight              Int
+
+  speed               Float
+  acceleration        Float
+  strength            Float
+  vertical            Float
+  stamina             Float
+  durability          Float
+
+  insideScoring       Float
+  midRange            Float
+  threePoint          Float
+  freeThrow           Float
+  layup               Float
+  postMoves           Float
+  ballHandling        Float
+  passing             Float
+  courtVision         Float
+  perimeterDefense    Float
+  interiorDefense     Float
+  steal               Float
+  block               Float
+  rebounding          Float
+  offensiveIQ         Float
+  defensiveIQ         Float
+  shotCreation        Float
+  pickAndRoll         Float
+
+  shotTendency        Float
+  driveTendency       Float
+  passTendency        Float
+  postTendency        Float
+  transitionTendency  Float
+  foulTendency        Float
+  hustleTendency      Float
+  riskTendency        Float
+
+  workEthic           Float
+  leadership          Float
+  coachability        Float
+  discipline          Float
+  loyalty             Float
+  competitiveness     Float
+  composure           Float
+
+  injuryProneness     Float
+  consistency         Float
+  clutch              Float
+  growthVariance      Float
+  nbaPotential        Float
+  academicDiscipline  Float
+
+  trueOverall         Float
+  truePotential       Float
+  developmentCurve    DevelopmentCurve
+  yearsRemaining      Int
+  isRedshirt          Boolean  @default(false)
+
+  gameStats           PlayerGameStat[]
+  awards              Award[]
+  nilContracts        NilContract[]
+  transfers           Transfer[]
+  draftHistory        DraftHistory[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Coach {
+  id                  Int      @id @default(autoincrement())
+  teamId              Int
+  team                Team     @relation(fields: [teamId], references: [id])
+  parentCoachId       Int?
+  parentCoach         Coach?   @relation("CoachingTree", fields: [parentCoachId], references: [id])
+  mentees             Coach[]  @relation("CoachingTree")
+  role                CoachRole
+  firstName           String
+  lastName            String
+  age                 Int
+  overall             Float
+  offense             Float
+  defense             Float
+  recruiting          Float
+  development         Float
+  discipline          Float
+  adaptability        Float
+  analytics           Float
+  charisma            Float
+  programBuilding     Float
+  gameManagement      Float
+  integrity           Float
+  pace                Float
+  spacing             Float
+  pressureDefense     Float
+  crashBoards         Float
+  transitionFocus     Float
+  pickAndRollUsage    Float
+  zoneRate            Float
+  benchDepthTrust     Float
+  contractYears       Int
+  salary              Float
+  buyout              Float
+  careerWins          Int
+  careerLosses        Int
+  careerTournamentWins Int
+  hiringSeason        Int
+  coachingChanges     CoachingChange[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model GameLog {
+  id            Int      @id @default(autoincrement())
+  season        Int
+  gameDate      DateTime
+  homeTeamId    Int
+  awayTeamId    Int
+  homeTeam      Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam      Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeScore     Int
+  awayScore     Int
+  pace          Float
+  overtime      Boolean  @default(false)
+  isTournament  Boolean  @default(false)
+  playerStats   PlayerGameStat[]
+}
+
+model PlayerGameStat {
+  id          Int      @id @default(autoincrement())
+  gameLogId   Int
+  playerId    Int
+  minutes     Float
+  points      Int
+  rebounds    Int
+  assists     Int
+  steals      Int
+  blocks      Int
+  turnovers   Int
+  fouls       Int
+  fgMade      Int
+  fgAttempted Int
+  tpMade      Int
+  tpAttempted Int
+  ftMade      Int
+  ftAttempted Int
+  gameLog     GameLog   @relation(fields: [gameLogId], references: [id])
+  player      Player    @relation(fields: [playerId], references: [id])
+}
+
+model Recruit {
+  id                  Int      @id @default(autoincrement())
+  season              Int
+  type                RecruitType
+  firstName           String
+  lastName            String
+  hometown            String
+  state               String
+  country             String
+  position            Position
+  age                 Int
+  heightInches        Int
+  weight              Int
+  gpa                 Float
+  eligibilityYears    Int
+  immediateEligibility Boolean @default(false)
+  visaDelayRisk       Float    @default(0)
+  nilDiscount         Float    @default(1)
+  uncertaintyMultiplier Float  @default(1)
+
+  speed               Float
+  acceleration        Float
+  strength            Float
+  vertical            Float
+  stamina             Float
+  durability          Float
+
+  insideScoring       Float
+  midRange            Float
+  threePoint          Float
+  freeThrow           Float
+  layup               Float
+  postMoves           Float
+  ballHandling        Float
+  passing             Float
+  courtVision         Float
+  perimeterDefense    Float
+  interiorDefense     Float
+  steal               Float
+  block               Float
+  rebounding          Float
+  offensiveIQ         Float
+  defensiveIQ         Float
+  shotCreation        Float
+  pickAndRoll         Float
+
+  shotTendency        Float
+  driveTendency       Float
+  passTendency        Float
+  postTendency        Float
+  transitionTendency  Float
+  foulTendency        Float
+  hustleTendency      Float
+  riskTendency        Float
+
+  workEthic           Float
+  leadership          Float
+  coachability        Float
+  discipline          Float
+  loyalty             Float
+  competitiveness     Float
+  composure           Float
+
+  trueOverall         Float
+  truePotential       Float
+  scoutedOverall      Float
+  scoutedPotential    Float
+  measurablesScore    Float
+  eventPerformance    Float
+  compositeScore      Float
+  starRating          Int
+  signedTeamId        Int?
+  signedTeam          Team?    @relation(fields: [signedTeamId], references: [id])
+  createdAt           DateTime @default(now())
+}
+
+model NilContract {
+  id              Int      @id @default(autoincrement())
+  playerId        Int
+  teamId          Int
+  season          Int
+  annualValue     Float
+  years           Int
+  brandScore      Float
+  player          Player   @relation(fields: [playerId], references: [id])
+  team            Team     @relation(fields: [teamId], references: [id])
+}
+
+model Transfer {
+  id              Int      @id @default(autoincrement())
+  playerId        Int
+  fromTeamId      Int
+  toTeamId        Int?
+  season          Int
+  reason          String
+  immediateEligible Boolean @default(false)
+  player          Player   @relation(fields: [playerId], references: [id])
+  fromTeam        Team     @relation("TransferFromTeam", fields: [fromTeamId], references: [id])
+  toTeam          Team?    @relation("TransferToTeam", fields: [toTeamId], references: [id])
+}
+
+model Award {
+  id              Int      @id @default(autoincrement())
+  season          Int
+  awardType       String
+  teamId          Int?
+  playerId        Int?
+  coachId         Int?
+  conferenceId    Int?
+  team            Team?    @relation(fields: [teamId], references: [id])
+  player          Player?  @relation(fields: [playerId], references: [id])
+}
+
+model RankingsHistory {
+  id              Int      @id @default(autoincrement())
+  season          Int
+  week            Int
+  conferenceId    Int?
+  teamId          Int?
+  rank            Int
+  points          Float
+  conference      Conference? @relation(fields: [conferenceId], references: [id])
+}
+
+model SeasonRecord {
+  id              Int      @id @default(autoincrement())
+  season          Int
+  teamId          Int
+  wins            Int
+  losses          Int
+  conferenceWins  Int
+  conferenceLosses Int
+  tournamentWins  Int
+  postseasonRound String?
+  apPeakRank      Int?
+  team            Team     @relation(fields: [teamId], references: [id])
+}
+
+model CoachingChange {
+  id              Int      @id @default(autoincrement())
+  season          Int
+  teamId          Int
+  outgoingCoachId Int?
+  incomingCoachId Int?
+  reason          String
+  team            Team     @relation(fields: [teamId], references: [id])
+  outgoingCoach   Coach?   @relation(fields: [outgoingCoachId], references: [id])
+  incomingCoach   Coach?   @relation(fields: [incomingCoachId], references: [id])
+}
+
+model ConferenceMembershipHistory {
+  id              Int      @id @default(autoincrement())
+  teamId          Int
+  conferenceId    Int
+  startSeason     Int
+  endSeason       Int?
+  team            Team     @relation(fields: [teamId], references: [id])
+  conference      Conference @relation(fields: [conferenceId], references: [id])
+}
+
+model Sanction {
+  id              Int      @id @default(autoincrement())
+  teamId          Int
+  season          Int
+  severity        Float
+  scholarshipReduction Int
+  postseasonBan   Boolean
+  reason          String
+  team            Team     @relation(fields: [teamId], references: [id])
+}
+
+model DraftHistory {
+  id              Int      @id @default(autoincrement())
+  season          Int
+  playerId        Int
+  teamId          Int
+  draftRound      Int
+  draftPick       Int
+  nbaTeam         String
+  player          Player   @relation(fields: [playerId], references: [id])
+  team            Team     @relation(fields: [teamId], references: [id])
+}
+
+model Schedule {
+  id              Int      @id @default(autoincrement())
+  season          Int
+  gameDate        DateTime
+  conferenceId    Int?
+  homeTeamId      Int
+  awayTeamId      Int
+  isConferenceGame Boolean
+  isTournamentGame Boolean
+  conference      Conference? @relation(fields: [conferenceId], references: [id])
+  homeTeam        Team     @relation("ScheduleHome", fields: [homeTeamId], references: [id])
+  awayTeam        Team     @relation("ScheduleAway", fields: [awayTeamId], references: [id])
+}
