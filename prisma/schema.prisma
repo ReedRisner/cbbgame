@@ -233,7 +233,8 @@ model Coach {
   careerLosses        Int
   careerTournamentWins Int
   hiringSeason        Int
-  coachingChanges     CoachingChange[]
+  outgoingCoachingChanges CoachingChange[] @relation("OutgoingCoachChange")
+  incomingCoachingChanges CoachingChange[] @relation("IncomingCoachChange")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -422,8 +423,8 @@ model CoachingChange {
   incomingCoachId Int?
   reason          String
   team            Team     @relation(fields: [teamId], references: [id])
-  outgoingCoach   Coach?   @relation(fields: [outgoingCoachId], references: [id])
-  incomingCoach   Coach?   @relation(fields: [incomingCoachId], references: [id])
+  outgoingCoach   Coach?   @relation("OutgoingCoachChange", fields: [outgoingCoachId], references: [id])
+  incomingCoach   Coach?   @relation("IncomingCoachChange", fields: [incomingCoachId], references: [id])
 }
 
 model ConferenceMembershipHistory {
