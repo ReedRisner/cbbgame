@@ -5,7 +5,11 @@ describe('recruiting formulas', () => {
   it('calculates composite + stars', () => {
     const comp = recruitCompositeScore({ scoutedPotential: 85, scoutedOverall: 80, measurables: 78, eventPerformance: 82 });
     expect(comp).toBeGreaterThan(80);
-    expect(starRatingFromComposite(comp)).toBe(4);
+    expect(starRatingFromComposite(comp)).toBe(3);
+
+    const fourStarComp = recruitCompositeScore({ scoutedPotential: 90, scoutedOverall: 86, measurables: 84, eventPerformance: 85 });
+    expect(fourStarComp).toBeGreaterThanOrEqual(82);
+    expect(starRatingFromComposite(fourStarComp)).toBe(4);
   });
 
   it('keeps uncertainty floor', () => {
