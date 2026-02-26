@@ -1,0 +1,1 @@
+export default function MoraleReport(){return <div className="card">Morale report</div>}

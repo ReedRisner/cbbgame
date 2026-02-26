@@ -1,0 +1,2 @@
+import { useApi } from '../../hooks/useApi';import { useUserTeam } from '../../context/UserTeamContext';
+export default function JealousyReport(){const {userTeamId}=useUserTeam(); const data=useApi<any[]>(`/api/nil/jealousy/${userTeamId ?? 1}`); if(data.loading)return <div>Loading...</div>; return <div className='card'><h2 className='font-semibold text-xl mb-2'>Jealousy Report</h2><ul className='space-y-1'>{(data.data??[]).map((p:any)=><li key={p.playerId}>{p.playerName ?? p.playerId}: {Math.round((p.jealousyFactor ?? 0)*100)}%</li>)}</ul></div>}

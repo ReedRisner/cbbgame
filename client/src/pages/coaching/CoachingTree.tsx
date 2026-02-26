@@ -1,0 +1,1 @@
+export default function CoachingTree(){return <div className="card">Coaching tree</div>}

@@ -1,0 +1,1 @@
+export default function Leaderboard(){return <div className="card">NIL Leaderboard (Top earners)</div>}

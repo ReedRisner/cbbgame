@@ -1,0 +1,1 @@
+export default function EfficiencyRatings(){return <div className="card">Efficiency ratings</div>}

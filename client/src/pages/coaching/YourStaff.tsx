@@ -1,0 +1,1 @@
+export default function YourStaff(){return <div className="card">Your staff and editable scheme</div>}
