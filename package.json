@@ -6,12 +6,14 @@
     "build": "tsc -p tsconfig.json",
     "seed": "ts-node src/seed.ts",
     "verify": "ts-node src/verify.ts",
-    "test": "vitest run",
+    "test": "node -r ts-node/register tests/runTests.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "api": "ts-node src/api/server.ts",
     "client:dev": "npm --prefix client run dev",
-    "client:build": "npm --prefix client run build"
+    "client:build": "npm --prefix client run build",
+    "verify:phase2": "node -r ts-node/register/transpile-only src/verifyPhase2.ts",
+    "test:node": "node ./node_modules/vitest/vitest.mjs run"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

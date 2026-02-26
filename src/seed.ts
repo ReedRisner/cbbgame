@@ -9,6 +9,18 @@ const prisma = new PrismaClient();
 
 async function seed() {
   console.log('Clearing existing data...');
+  // Phase 2 tables that reference core entities must be cleared first
+  // to avoid FK restrict errors during reseed.
+  await prisma.recruitInterest.deleteMany();
+  await prisma.recruitVisit.deleteMany();
+  await prisma.recruitScouting.deleteMany();
+  await prisma.recruitOffer.deleteMany();
+  await prisma.portalEntry.deleteMany();
+  await prisma.nilOffer.deleteMany();
+  await prisma.tamperingLog.deleteMany();
+  await prisma.teamRecruitingBoard.deleteMany();
+  await prisma.boosterFatigueTracking.deleteMany();
+
   await prisma.playerGameStat.deleteMany();
   await prisma.gameLog.deleteMany();
   await prisma.nilContract.deleteMany();
