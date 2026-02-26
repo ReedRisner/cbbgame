@@ -3,8 +3,8 @@ import { scheduleVisit } from './visits';
 
 export type RecruitBoardEntry = { recruitId: number; priorityRank: number; scoutingInvestment: number; priorityScore: number };
 
-const UNOFFICIAL_WEEKLY_CAP = 3;
-const UNOFFICIAL_COOLDOWN_WEEKS = 4;
+const UNOFFICIAL_WEEKLY_CAP = 1;
+const UNOFFICIAL_COOLDOWN_WEEKS = 6;
 
 function targetPriority(positionNeed: number, talentGap: number, schemeFit: number, gettability: number): number {
   return positionNeed * 0.35 + talentGap * 0.3 + schemeFit * 0.2 + gettability * 0.15;
@@ -82,14 +82,14 @@ export async function runAIRecruiting(teamId: number, season: number, week: numb
     });
     const interestLevel = interest?.interestLevel ?? 40;
 
-    if (inOfficialWindow && entry.priorityRank <= 5 && interestLevel >= 58) {
-      const officialChance = entry.priorityRank <= 2 ? 0.55 : 0.35;
+    if (inOfficialWindow && entry.priorityRank <= 5 && interestLevel >= 55) {
+      const officialChance = entry.priorityRank <= 2 ? 0.7 : 0.5;
       if (Math.random() < officialChance) {
         await scheduleVisit(entry.recruitId, teamId, 'official', week).catch(() => undefined);
       }
     }
 
-    if (!inUnofficialWindow || entry.priorityRank > 8 || interestLevel < 45 || unofficialScheduledThisWeek >= UNOFFICIAL_WEEKLY_CAP) {
+    if (!inUnofficialWindow || entry.priorityRank > 6 || interestLevel < 55 || unofficialScheduledThisWeek >= UNOFFICIAL_WEEKLY_CAP) {
       continue;
     }
 
@@ -106,7 +106,7 @@ export async function runAIRecruiting(teamId: number, season: number, week: numb
 
     if (recentUnofficial) continue;
 
-    const unofficialChance = entry.priorityRank <= 4 ? 0.16 : 0.08;
+    const unofficialChance = entry.priorityRank <= 3 ? 0.08 : 0.04;
     if (Math.random() < unofficialChance) {
       const result = await scheduleVisit(entry.recruitId, teamId, 'unofficial', week).catch(() => ({ ok: false }));
       if (result.ok) unofficialScheduledThisWeek += 1;

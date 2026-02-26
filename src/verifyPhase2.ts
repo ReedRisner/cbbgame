@@ -112,7 +112,7 @@ async function main() {
   check('Portal marketplace with value adjustments', portalMarketplace.commitments > 0, `commitments=${portalMarketplace.commitments}`);
   check('Tampering detection system', tampering.flags >= tampering.audits && tampering.audits >= tampering.penalties, `flags=${tampering.flags} audits=${tampering.audits} penalties=${tampering.penalties}`);
 
-  check('NIL collective funding formula', budgetRatio >= 150, `ratio=${budgetRatio.toFixed(2)} target≈200`);
+  check('NIL collective funding formula', budgetRatio >= 150 && budgetRatio <= 300, `ratio=${budgetRatio.toFixed(2)} target≈200 (acceptable 150-300)`);
 
   const samplePlayer = await prisma.player.findFirstOrThrow({ where: { teamId: sampleTeam.id } });
   const nilValue = await calculatePlayerNILValue(samplePlayer.id);
