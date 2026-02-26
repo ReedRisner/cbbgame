@@ -21,14 +21,15 @@ async function main() {
   await applyFatigueToAllTeams(season);
   const tampering = await runTamperingAudits(season);
 
-  const recruitsByType = await prisma.recruit.groupBy({ by: ['type', 'starRating'], where: { season }, _count: true });
-  const commitmentsByStar = await prisma.recruit.groupBy({ by: ['starRating'], where: { season, signedTeamId: { not: null } }, _count: true });
-  const uncommitted = await prisma.recruit.count({ where: { season, signedTeamId: null } });
-  const visitsOfficial = await prisma.recruitVisit.count({ where: { season, visitType: 'OFFICIAL' } });
-  const visitsUnofficial = await prisma.recruitVisit.count({ where: { season, visitType: 'UNOFFICIAL' } });
-  const budgets = await prisma.team.findMany({ select: { annualNilBudget: true } });
-  const maxBudget = Math.max(...budgets.map((b) => b.annualNilBudget));
-  const minBudget = Math.max(1, Math.min(...budgets.map((b) => b.annualNilBudget)));
+  const db = prisma as any;
+  const recruitsByType = await db.recruit.groupBy({ by: ['type', 'starRating'], where: { season }, _count: true });
+  const commitmentsByStar = await db.recruit.groupBy({ by: ['starRating'], where: { season, signedTeamId: { not: null } }, _count: true });
+  const uncommitted = await db.recruit.count({ where: { season, signedTeamId: null } });
+  const visitsOfficial = await db.recruitVisit.count({ where: { season, visitType: 'OFFICIAL' } });
+  const visitsUnofficial = await db.recruitVisit.count({ where: { season, visitType: 'UNOFFICIAL' } });
+  const budgets = await db.team.findMany({ select: { annualNilBudget: true } });
+  const maxBudget = Math.max(...budgets.map((b: any) => b.annualNilBudget));
+  const minBudget = Math.max(1, Math.min(...budgets.map((b: any) => b.annualNilBudget)));
 
   console.log('Recruit types:', recruitsByType);
   console.log('Teams actively recruiting:', teams.length);
