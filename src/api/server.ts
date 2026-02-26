@@ -7,6 +7,10 @@ import coachesRouter from './routes/coaches';
 import recruitsRouter from './routes/recruits';
 import rankingsRouter from './routes/rankings';
 import searchRouter from './routes/search';
+import recruitingRouter from './routes/recruiting';
+import portalRouter from './routes/portal';
+import nilRouter from './routes/nil';
+import tamperingRouter from './routes/tampering';
 
 const app = express();
 app.use(cors());
@@ -20,6 +24,10 @@ app.use('/api/coaches', coachesRouter);
 app.use('/api/recruits', recruitsRouter);
 app.use('/api/rankings', rankingsRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/recruiting', recruitingRouter);
+app.use('/api/portal', portalRouter);
+app.use('/api/nil', nilRouter);
+app.use('/api/tampering', tamperingRouter);
 
 const port = Number(process.env.PORT ?? 4000);
 app.listen(port, () => {
