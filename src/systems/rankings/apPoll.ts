@@ -24,7 +24,12 @@ export async function getPreseasonPoll(season: number): Promise<APPollResult[]> 
   const teams = await prisma.team.findMany({ include: { players: true } });
   const ranked = teams.map((t) => ({
     teamId: t.id,
-    score: calculatePreseasonScore(t.currentPrestige, t.players.reduce((s, p) => s + p.overall, 0) / Math.max(1, t.players.length), 50, 50),
+    score: calculatePreseasonScore(
+      t.currentPrestige,
+      t.players.reduce((s, p) => s + p.trueOverall, 0) / Math.max(1, t.players.length),
+      50,
+      50,
+    ),
   })).sort((a, b) => b.score - a.score).slice(0, 25);
 
   return ranked.map((r, i) => ({ rank: i + 1, teamId: r.teamId, points: 25 - i, firstPlaceVotes: i === 0 ? 5 : 0, prevRank: null }));
