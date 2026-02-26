@@ -98,7 +98,9 @@ async function main() {
   const sampleTeam = await prisma.team.findFirstOrThrow({ where: { id: teams[0].id }, select: { id: true, facilityRating: true, fanIntensity: true } });
   const officialBoost = await calculateVisitBoost(sampleTeam, 'official', 22);
   const unofficialBoost = await calculateVisitBoost(sampleTeam, 'unofficial', 22);
-  check('Visit system with boost calculations', unofficialBoost > 0 && officialBoost > unofficialBoost && visitsUnofficial > 0, `official=${officialBoost.toFixed(2)} unofficial=${unofficialBoost.toFixed(2)} totalU=${visitsUnofficial}`);
+  const visitRatio = visitsUnofficial / Math.max(1, visitsOfficial);
+  check('Visit system with boost calculations', unofficialBoost > 0 && officialBoost > unofficialBoost && visitsOfficial > 0 && visitsUnofficial > 0, `official=${officialBoost.toFixed(2)} unofficial=${unofficialBoost.toFixed(2)} O=${visitsOfficial} U=${visitsUnofficial}`);
+  check('Visit official/unofficial balance', visitRatio >= 1.5 && visitRatio <= 8.0, `ratio=${visitRatio.toFixed(2)} targetRange=1.5-8.0`);
 
   check('Commitment and decommitment logic', commitmentsByStar.length > 0 && uncommitted < 120, `commitGroups=${commitmentsByStar.length} uncommitted=${uncommitted}`);
 
