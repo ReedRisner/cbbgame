@@ -3,6 +3,10 @@ import { generateConferenceSchedule, type ScheduleEntry } from './conference';
 import { generateMTEs, assignTeamsToMTEs } from './mte';
 import { generateNonConferenceSchedule } from './nonConference';
 
+const TARGET_GAMES_PER_TEAM = 32;
+const MAX_HOME_AWAY_STREAK = 2;
+const REGULAR_SEASON_WEEKS = Array.from({ length: 40 }, (_, i) => i + 1);
+
 export type ScheduleSummary = {
   totalGames: number;
   gamesPerTeam: Record<number, number>;
@@ -14,6 +18,10 @@ function toDateForWeek(season: number, week: number): Date {
   const d = new Date(Date.UTC(season, 9, 15));
   d.setUTCDate(d.getUTCDate() + (week - 1) * 7);
   return d;
+}
+
+function pairKey(a: number, b: number): string {
+  return a < b ? `${a}-${b}` : `${b}-${a}`;
 }
 
 function detectConflicts(entries: ScheduleEntry[]): number {
@@ -30,34 +38,35 @@ function detectConflicts(entries: ScheduleEntry[]): number {
   return conflicts;
 }
 
-function isValidStreak(weeksToVenue: Array<{ week: number; venue: 'H' | 'A' }>): boolean {
-  const ordered = [...weeksToVenue].sort((a, b) => a.week - b.week);
-  let run = 1;
+function isStreakValid(existing: Array<{ week: number; venue: 'H' | 'A' }>, candidate: { week: number; venue: 'H' | 'A' }): boolean {
+  const ordered = [...existing, candidate].sort((a, b) => a.week - b.week);
+  let streak = 1;
   for (let i = 1; i < ordered.length; i += 1) {
     if (ordered[i].venue === ordered[i - 1].venue) {
-      run += 1;
-      if (run > 2) return false;
+      streak += 1;
+      if (streak > MAX_HOME_AWAY_STREAK) return false;
     } else {
-      run = 1;
+      streak = 1;
     }
   }
   return true;
 }
 
-function pickWeek(
-  entry: ScheduleEntry,
+function chooseWeek(
+  homeTeamId: number,
+  awayTeamId: number,
   occupiedWeeks: Map<number, Set<number>>,
-  venueByTeam: Map<number, Array<{ week: number; venue: 'H' | 'A' }>>,
+  venuesByTeam: Map<number, Array<{ week: number; venue: 'H' | 'A' }>>,
 ): number | null {
-  const primary = entry.isConferenceGame ? [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  for (const week of primary) {
-    const hOcc = occupiedWeeks.get(entry.homeTeamId) ?? new Set<number>();
-    const aOcc = occupiedWeeks.get(entry.awayTeamId) ?? new Set<number>();
+  for (const week of REGULAR_SEASON_WEEKS) {
+    const hOcc = occupiedWeeks.get(homeTeamId) ?? new Set<number>();
+    const aOcc = occupiedWeeks.get(awayTeamId) ?? new Set<number>();
     if (hOcc.has(week) || aOcc.has(week)) continue;
 
-    const hVenues = [...(venueByTeam.get(entry.homeTeamId) ?? []), { week, venue: 'H' as const }];
-    const aVenues = [...(venueByTeam.get(entry.awayTeamId) ?? []), { week, venue: 'A' as const }];
-    if (!isValidStreak(hVenues) || !isValidStreak(aVenues)) continue;
+    const hVenues = venuesByTeam.get(homeTeamId) ?? [];
+    const aVenues = venuesByTeam.get(awayTeamId) ?? [];
+    if (!isStreakValid(hVenues, { week, venue: 'H' })) continue;
+    if (!isStreakValid(aVenues, { week, venue: 'A' })) continue;
     return week;
   }
   return null;
@@ -67,93 +76,106 @@ export async function generateFullSchedule(season: number): Promise<ScheduleSumm
   await generateMTEs(season);
   await assignTeamsToMTEs(season);
 
-  const teams = await prisma.team.findMany();
+  const teams = await prisma.team.findMany({ select: { id: true, conferenceId: true } });
   const teamIds = teams.map((t) => t.id);
-  const gamesByTeam = new Map<number, number>(teamIds.map((id) => [id, 0]));
+  const conferenceByTeam = new Map(teams.map((t) => [t.id, t.conferenceId]));
 
+  const conferences = await prisma.conference.findMany({ select: { id: true } });
   const conferenceEntries: ScheduleEntry[] = [];
-  const conferences = await prisma.conference.findMany();
   for (const conf of conferences) {
-    const confGames = await generateConferenceSchedule(conf.id, season);
-    conferenceEntries.push(...confGames);
-    for (const g of confGames) {
-      gamesByTeam.set(g.homeTeamId, (gamesByTeam.get(g.homeTeamId) ?? 0) + 1);
-      gamesByTeam.set(g.awayTeamId, (gamesByTeam.get(g.awayTeamId) ?? 0) + 1);
-    }
+    conferenceEntries.push(...await generateConferenceSchedule(conf.id, season));
   }
 
   const mteParticipants = await prisma.mteParticipant.findMany({ include: { mte: true }, where: { mte: { season } } });
   const mteTeams = new Set<number>(mteParticipants.map((p) => p.teamId));
+  const conferenceCounts = new Map<number, number>();
+  for (const e of conferenceEntries) {
+    conferenceCounts.set(e.homeTeamId, (conferenceCounts.get(e.homeTeamId) ?? 0) + 1);
+    conferenceCounts.set(e.awayTeamId, (conferenceCounts.get(e.awayTeamId) ?? 0) + 1);
+  }
 
   const nonConferenceEntries = await generateNonConferenceSchedule({
     season,
-    existingGamesByTeam: gamesByTeam,
+    existingGamesByTeam: conferenceCounts,
     mteTeams,
   });
 
-  const allEntries = [...conferenceEntries, ...nonConferenceEntries];
-  const occupiedWeeks = new Map<number, Set<number>>();
-  const venueByTeam = new Map<number, Array<{ week: number; venue: 'H' | 'A' }>>();
+  const candidateEntries = [...conferenceEntries, ...nonConferenceEntries];
+
   const scheduledEntries: ScheduleEntry[] = [];
+  const gamesPerTeam = new Map<number, number>(teamIds.map((id) => [id, 0]));
+  const occupiedWeeks = new Map<number, Set<number>>();
+  const venuesByTeam = new Map<number, Array<{ week: number; venue: 'H' | 'A' }>>();
+  const pairCounts = new Map<string, number>();
 
-  for (const e of allEntries) {
-    const week = pickWeek(e, occupiedWeeks, venueByTeam);
-    if (!week) continue;
-    const resolved: ScheduleEntry = { ...e, week };
-    scheduledEntries.push(resolved);
+  const addScheduledGame = (entry: Omit<ScheduleEntry, 'week'>): boolean => {
+    if ((gamesPerTeam.get(entry.homeTeamId) ?? 0) >= TARGET_GAMES_PER_TEAM) return false;
+    if ((gamesPerTeam.get(entry.awayTeamId) ?? 0) >= TARGET_GAMES_PER_TEAM) return false;
 
-    if (!occupiedWeeks.has(e.homeTeamId)) occupiedWeeks.set(e.homeTeamId, new Set<number>());
-    if (!occupiedWeeks.has(e.awayTeamId)) occupiedWeeks.set(e.awayTeamId, new Set<number>());
-    occupiedWeeks.get(e.homeTeamId)?.add(week);
-    occupiedWeeks.get(e.awayTeamId)?.add(week);
+    const week = chooseWeek(entry.homeTeamId, entry.awayTeamId, occupiedWeeks, venuesByTeam);
+    if (!week) return false;
 
-    if (!venueByTeam.has(e.homeTeamId)) venueByTeam.set(e.homeTeamId, []);
-    if (!venueByTeam.has(e.awayTeamId)) venueByTeam.set(e.awayTeamId, []);
-    venueByTeam.get(e.homeTeamId)?.push({ week, venue: 'H' });
-    venueByTeam.get(e.awayTeamId)?.push({ week, venue: 'A' });
+    scheduledEntries.push({ ...entry, week });
+    gamesPerTeam.set(entry.homeTeamId, (gamesPerTeam.get(entry.homeTeamId) ?? 0) + 1);
+    gamesPerTeam.set(entry.awayTeamId, (gamesPerTeam.get(entry.awayTeamId) ?? 0) + 1);
+
+    if (!occupiedWeeks.has(entry.homeTeamId)) occupiedWeeks.set(entry.homeTeamId, new Set<number>());
+    if (!occupiedWeeks.has(entry.awayTeamId)) occupiedWeeks.set(entry.awayTeamId, new Set<number>());
+    occupiedWeeks.get(entry.homeTeamId)?.add(week);
+    occupiedWeeks.get(entry.awayTeamId)?.add(week);
+
+    if (!venuesByTeam.has(entry.homeTeamId)) venuesByTeam.set(entry.homeTeamId, []);
+    if (!venuesByTeam.has(entry.awayTeamId)) venuesByTeam.set(entry.awayTeamId, []);
+    venuesByTeam.get(entry.homeTeamId)?.push({ week, venue: 'H' });
+    venuesByTeam.get(entry.awayTeamId)?.push({ week, venue: 'A' });
+
+    const pKey = pairKey(entry.homeTeamId, entry.awayTeamId);
+    pairCounts.set(pKey, (pairCounts.get(pKey) ?? 0) + 1);
+    return true;
+  };
+
+  // Pass 1: schedule all candidates while respecting 32-game cap.
+  for (const e of candidateEntries) {
+    addScheduledGame({
+      season,
+      homeTeamId: e.homeTeamId,
+      awayTeamId: e.awayTeamId,
+      conferenceId: e.conferenceId,
+      isConferenceGame: e.isConferenceGame,
+      isTournamentGame: e.isTournamentGame,
+      neutralSite: e.neutralSite,
+      mteId: e.mteId,
+    });
   }
 
-  // Fill to at least 28 where possible.
-  const currentCounts = new Map<number, number>(teamIds.map((id) => [id, 0]));
-  for (const e of scheduledEntries) {
-    currentCounts.set(e.homeTeamId, (currentCounts.get(e.homeTeamId) ?? 0) + 1);
-    currentCounts.set(e.awayTeamId, (currentCounts.get(e.awayTeamId) ?? 0) + 1);
-  }
-
+  // Pass 2: fill all teams up to exactly 32 with additional non-conference games.
   let guard = 0;
-  while (guard < 100_000 && teamIds.some((id) => (currentCounts.get(id) ?? 0) < 28)) {
+  while (guard < 300_000 && teamIds.some((id) => (gamesPerTeam.get(id) ?? 0) < TARGET_GAMES_PER_TEAM)) {
     guard += 1;
-    const need = teamIds.filter((id) => (currentCounts.get(id) ?? 0) < 28).sort((a, b) => (currentCounts.get(a) ?? 0) - (currentCounts.get(b) ?? 0));
-    if (need.length < 2) break;
-    const a = need[0];
-    const b = need.find((id) => id !== a && (currentCounts.get(id) ?? 0) < 33);
+    const needTeams = teamIds
+      .filter((id) => (gamesPerTeam.get(id) ?? 0) < TARGET_GAMES_PER_TEAM)
+      .sort((a, b) => (gamesPerTeam.get(a) ?? 0) - (gamesPerTeam.get(b) ?? 0));
+
+    if (needTeams.length < 2) break;
+    const a = needTeams[0];
+    const b = needTeams.find((id) => {
+      if (id === a) return false;
+      if ((gamesPerTeam.get(id) ?? 0) >= TARGET_GAMES_PER_TEAM) return false;
+      if (conferenceByTeam.get(id) === conferenceByTeam.get(a)) return false;
+      if ((pairCounts.get(pairKey(a, id)) ?? 0) >= 2) return false;
+      return true;
+    });
+
     if (!b) break;
 
-    const candidate: ScheduleEntry = {
+    const homeA = (gamesPerTeam.get(a) ?? 0) <= (gamesPerTeam.get(b) ?? 0);
+    addScheduledGame({
       season,
-      week: 0,
-      homeTeamId: (currentCounts.get(a) ?? 0) <= (currentCounts.get(b) ?? 0) ? a : b,
-      awayTeamId: (currentCounts.get(a) ?? 0) <= (currentCounts.get(b) ?? 0) ? b : a,
+      homeTeamId: homeA ? a : b,
+      awayTeamId: homeA ? b : a,
       isConferenceGame: false,
       isTournamentGame: false,
-    };
-    const week = pickWeek(candidate, occupiedWeeks, venueByTeam);
-    if (!week) continue;
-
-    const resolved = { ...candidate, week };
-    scheduledEntries.push(resolved);
-    currentCounts.set(resolved.homeTeamId, (currentCounts.get(resolved.homeTeamId) ?? 0) + 1);
-    currentCounts.set(resolved.awayTeamId, (currentCounts.get(resolved.awayTeamId) ?? 0) + 1);
-
-    if (!occupiedWeeks.has(resolved.homeTeamId)) occupiedWeeks.set(resolved.homeTeamId, new Set<number>());
-    if (!occupiedWeeks.has(resolved.awayTeamId)) occupiedWeeks.set(resolved.awayTeamId, new Set<number>());
-    occupiedWeeks.get(resolved.homeTeamId)?.add(week);
-    occupiedWeeks.get(resolved.awayTeamId)?.add(week);
-
-    if (!venueByTeam.has(resolved.homeTeamId)) venueByTeam.set(resolved.homeTeamId, []);
-    if (!venueByTeam.has(resolved.awayTeamId)) venueByTeam.set(resolved.awayTeamId, []);
-    venueByTeam.get(resolved.homeTeamId)?.push({ week, venue: 'H' });
-    venueByTeam.get(resolved.awayTeamId)?.push({ week, venue: 'A' });
+    });
   }
 
   await prisma.schedule.deleteMany({ where: { season } });
@@ -172,13 +194,13 @@ export async function generateFullSchedule(season: number): Promise<ScheduleSumm
     });
   }
 
-  const gamesPerTeam: Record<number, number> = {};
-  for (const id of teamIds) gamesPerTeam[id] = currentCounts.get(id) ?? 0;
-  const outlierTeams = teamIds.filter((id) => gamesPerTeam[id] < 28 || gamesPerTeam[id] > 33);
+  const gamesPerTeamObj: Record<number, number> = {};
+  for (const id of teamIds) gamesPerTeamObj[id] = gamesPerTeam.get(id) ?? 0;
+  const outlierTeams = teamIds.filter((id) => gamesPerTeamObj[id] !== TARGET_GAMES_PER_TEAM);
 
   return {
     totalGames: scheduledEntries.length,
-    gamesPerTeam,
+    gamesPerTeam: gamesPerTeamObj,
     conflicts: detectConflicts(scheduledEntries),
     outlierTeams,
   };
