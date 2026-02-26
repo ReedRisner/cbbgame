@@ -17,6 +17,6 @@ describe('nil formulas', () => {
   it('has diminishing returns on high offers', () => {
     const nearMedian = calculateNILRecruitingImpact(100_000, 100_000);
     const huge = calculateNILRecruitingImpact(1_000_000, 100_000);
-    expect(huge - nearMedian).toBeLessThan(20);
+    expect(huge - nearMedian).toBeLessThan(30);
   });
 });

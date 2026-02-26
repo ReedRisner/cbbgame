@@ -21,11 +21,7 @@ Then run:
 npm test
 ```
 
-If your shell cannot execute the `vitest` shim, run the node entry directly:
-
-```powershell
-npm run test:node
-```
+`npm test` now runs the repository's TS assertion runner (`tests/runTests.ts`) so it does not depend on Vitest/vite-node resolution.
 
 ## 2) Prisma
 
@@ -62,4 +58,18 @@ In another shell:
 curl -X POST http://localhost:4000/api/recruiting/advance-week -H "Content-Type: application/json" -d '{"season":1,"week":1}'
 curl http://localhost:4000/api/recruiting/board/1?season=1
 curl http://localhost:4000/api/nil/budget/1
+```
+
+
+## 1b) If Prisma migrate reports P3015 (missing migration.sql)
+
+If you see a missing migration directory error, make sure your migrations folder contains both:
+
+- `prisma/migrations/20260225231550_init/migration.sql`
+- `prisma/migrations/20260226005212_init/migration.sql`
+
+Then rerun:
+
+```powershell
+npx prisma migrate dev --name phase2_backend
 ```

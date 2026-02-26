@@ -6,7 +6,7 @@
     "build": "tsc -p tsconfig.json",
     "seed": "ts-node src/seed.ts",
     "verify": "ts-node src/verify.ts",
-    "test": "vitest run",
+    "test": "node -r ts-node/register tests/runTests.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "api": "ts-node src/api/server.ts",
