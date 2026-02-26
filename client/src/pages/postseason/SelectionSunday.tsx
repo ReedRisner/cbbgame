@@ -1,0 +1,1 @@
+export default function SelectionSunday(){return <div className="card">Selection Sunday — Field of 68</div>}

@@ -1,0 +1,1 @@
+export default function FitReport(){return <div className="card">Scheme fit report</div>}

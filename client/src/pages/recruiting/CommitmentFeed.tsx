@@ -1,0 +1,1 @@
+export default function CommitmentFeed(){return <div className="card"><h2 className="text-xl font-semibold">Commitment Feed</h2><p className="text-slate-300 mt-2">Recruiting commitments and decommitments populate as you advance weeks.</p></div>}

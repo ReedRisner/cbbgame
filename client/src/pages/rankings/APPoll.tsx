@@ -1,0 +1,2 @@
+import { useApi } from '../../hooks/useApi';import { useSeasonState } from '../../context/SeasonContext';import DataTable from '../../components/DataTable';
+export default function APPoll(){const {state}=useSeasonState();const data=useApi<any[]>(`/api/rankings/ap/${state.season}/${state.week}`); if(data.loading)return <div>Loading...</div>; return <div className='card'><h2 className='text-xl font-semibold mb-2'>AP Poll</h2><DataTable headers={['Rank','Team','Record','Pts']} rows={(data.data??[]).map(r=>[r.rank,r.teamName ?? r.teamId,r.record ?? '-',r.points])} /></div>}

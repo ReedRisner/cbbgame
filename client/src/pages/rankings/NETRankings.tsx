@@ -1,0 +1,1 @@
+export default function NETRankings(){return <div className="card">NET rankings (paginated)</div>}

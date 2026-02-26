@@ -1,0 +1,1 @@
+export default function RecruitingHub(){return <div className="card"><h2 className="text-xl font-semibold">Recruiting Dashboard</h2><p className="text-slate-300 mt-2">Manage your board, feed, and class summary from the sub-pages.</p></div>}
