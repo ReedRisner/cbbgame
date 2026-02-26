@@ -99,6 +99,45 @@ enum CoachRole {
   PLAYER_DEVELOPMENT
 }
 
+enum CoachOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum PossessionType {
+  TRANSITION
+  HALFCOURT
+}
+
+enum PossessionActionType {
+  PNR
+  POSTUP
+  ISO
+  MOTION
+  CUT
+}
+
+enum PossessionShotType {
+  CLOSE
+  MID
+  THREE
+  NONE
+}
+
+enum PossessionOutcome {
+  MADE
+  MISSED
+  TURNOVER
+  FOUL
+}
+
+enum InjurySeverity {
+  MINOR
+  MODERATE
+  SERIOUS
+}
+
 model Conference {
   id                     Int      @id @default(autoincrement())
   name                   String   @unique
@@ -167,6 +206,11 @@ model Team {
   tamperingLogs               TamperingLog[]
   teamRecruitingBoard         TeamRecruitingBoard[]
   boosterFatigue              BoosterFatigueTracking[]
+  hotSeatRecords              CoachingHotSeat[]
+  coachJobOffers              CoachJobOffer[]
+  coachingBuyouts             CoachingBuyout[]
+  gamePossessions             GamePossession[]
+  teamLineups                 TeamLineup[]
   annualNilBudget             Float   @default(0)
   cumulativeSpending3yr       Float   @default(0)
   fatigueModifier             Float   @default(0)
@@ -245,8 +289,13 @@ model Player {
   yearsRemaining      Int
   isRedshirt          Boolean  @default(false)
   socialMediaRating   Float    @default(20)
+  morale              Float    @default(70)
+  fatigueAccumulation Float    @default(0)
+  fitScore            Float    @default(60)
   transferCount       Int      @default(0)
   visaDelayWeeks      Int      @default(0)
+  injuryStatus        Boolean  @default(false)
+  injuryGamesRemaining Int     @default(0)
 
   gameStats           PlayerGameStat[]
   awards              Award[]
@@ -256,6 +305,8 @@ model Player {
   portalEntries       PortalEntry[]
   tamperingLogs       TamperingLog[]
   nilOffers           NilOffer[]
+  fatigueLogs         PlayerFatigue[]
+  injuryLogs          GameInjury[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -298,8 +349,13 @@ model Coach {
   careerLosses        Int
   careerTournamentWins Int
   hiringSeason        Int
+  hotSeatYears        Int      @default(0)
+  buyoutStatus        Boolean  @default(false)
   outgoingCoachingChanges CoachingChange[] @relation("OutgoingCoachChange")
   incomingCoachingChanges CoachingChange[] @relation("IncomingCoachChange")
+  hotSeatRecords      CoachingHotSeat[]
+  jobOffers           CoachJobOffer[]
+  buyouts             CoachingBuyout[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -318,6 +374,10 @@ model GameLog {
   overtime      Boolean  @default(false)
   isTournament  Boolean  @default(false)
   playerStats   PlayerGameStat[]
+  possessions   GamePossession[]
+  fatigue       PlayerFatigue[]
+  injuries      GameInjury[]
+  refAssignment RefAssignment?
 }
 
 model PlayerGameStat {
@@ -669,4 +729,115 @@ model Schedule {
   conference      Conference? @relation(fields: [conferenceId], references: [id])
   homeTeam        Team     @relation("ScheduleHome", fields: [homeTeamId], references: [id])
   awayTeam        Team     @relation("ScheduleAway", fields: [awayTeamId], references: [id])
+}
+
+model CoachingHotSeat {
+  id                    Int   @id @default(autoincrement())
+  coachId               Int
+  teamId                Int
+  season                Int
+  hotSeatScore          Float
+  expectedWins          Float
+  actualWins            Float
+  tourneyDisappointment Float
+  scandalPenalty        Float
+  fanPressure           Float
+  firingProbability     Float
+  coach                 Coach @relation(fields: [coachId], references: [id])
+  team                  Team  @relation(fields: [teamId], references: [id])
+
+  @@unique([coachId, season])
+}
+
+model CoachJobOffer {
+  id            Int   @id @default(autoincrement())
+  coachId       Int
+  teamId        Int
+  season        Int
+  hireScore     Float
+  status        CoachOfferStatus @default(PENDING)
+  salaryOffered Float
+  yearsOffered  Int
+  coach         Coach @relation(fields: [coachId], references: [id])
+  team          Team  @relation(fields: [teamId], references: [id])
+}
+
+model CoachingBuyout {
+  id                Int   @id @default(autoincrement())
+  coachId           Int
+  teamId            Int
+  season            Int
+  buyoutAmount      Float
+  budgetImpactYears Int
+  remainingImpact   Float
+  coach             Coach @relation(fields: [coachId], references: [id])
+  team              Team  @relation(fields: [teamId], references: [id])
+}
+
+model GamePossession {
+  id               Int   @id @default(autoincrement())
+  gameId           Int
+  possessionNumber Int
+  teamId           Int
+  possessionType   PossessionType
+  actionType       PossessionActionType
+  primaryPlayerId  Int?
+  secondaryPlayerId Int?
+  shotType         PossessionShotType
+  shotQuality      Float
+  outcome          PossessionOutcome
+  rebounderId      Int?
+  pointsScored     Int
+  timeRemaining    Float
+  game             GameLog @relation(fields: [gameId], references: [id])
+  team             Team    @relation(fields: [teamId], references: [id])
+}
+
+model PlayerFatigue {
+  id            Int   @id @default(autoincrement())
+  gameId        Int
+  playerId      Int
+  minutesPlayed Float
+  fatigueLevel  Float
+  fatiguePenalty Float
+  game          GameLog @relation(fields: [gameId], references: [id])
+  player        Player  @relation(fields: [playerId], references: [id])
+
+  @@unique([gameId, playerId])
+}
+
+model GameInjury {
+  id             Int   @id @default(autoincrement())
+  gameId         Int
+  playerId       Int
+  minuteOccurred Float
+  severity       InjurySeverity
+  gamesOut       Int
+  game           GameLog @relation(fields: [gameId], references: [id])
+  player         Player  @relation(fields: [playerId], references: [id])
+}
+
+model TeamLineup {
+  id              Int   @id @default(autoincrement())
+  teamId          Int
+  season          Int
+  player1Id       Int
+  player2Id       Int
+  player3Id       Int
+  player4Id       Int
+  player5Id       Int
+  minutesTogether Float
+  offRating       Float
+  defRating       Float
+  netRating       Float
+  team            Team  @relation(fields: [teamId], references: [id])
+}
+
+model RefAssignment {
+  id             Int   @id @default(autoincrement())
+  gameId         Int   @unique
+  foulCallRate   Float
+  homeWhistleBias Float
+  tightnessLevel Float
+  game           GameLog @relation(fields: [gameId], references: [id])
 }
