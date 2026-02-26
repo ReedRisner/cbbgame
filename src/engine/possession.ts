@@ -34,18 +34,18 @@ export function simulatePossession(
 
   const handler = [...offense].sort((a, b) => (b.ballHandling + b.overall) - (a.ballHandling + a.overall))[0];
 
-  const turnoverProb = calculateTurnoverProbability(defenseScheme.pressRate * 100, 55 + defenseScheme.defAggRate * 45, handler.ballHandling);
+  const turnoverProb = calculateTurnoverProbability(defenseScheme.pressRate * 100, 72 + defenseScheme.defAggRate * 55, handler.ballHandling - 12);
   if (Math.random() < turnoverProb) {
     return { points: 0, turnover: true, foul: false, threeAttempt: false, made: false, reboundedOffense: false, assist: false, seconds: Math.max(9, Math.min(27, 23 - (scheme.possessionsPerGame / 11) + normalRandom(0, 2.0))) };
   }
 
   const shotType = weightedChoice(['close', 'mid', 'three'] as const, [
-    Math.max(0.2, 1 - scheme.threePointAttemptRate - 0.28),
-    0.28,
-    scheme.threePointAttemptRate,
+    Math.max(0.24, 1 - scheme.threePointAttemptRate - 0.32),
+    0.30,
+    scheme.threePointAttemptRate * 0.9,
   ]);
 
-  const foulProb = calculateFoulProbability(70 + defenseScheme.defAggRate * 30, 95, shotType === 'close' ? 1.45 : 1.15, { foulCallRate: gameState.refFoulRate ?? 1 });
+  const foulProb = calculateFoulProbability(92 + defenseScheme.defAggRate * 45, 130, shotType === 'close' ? 2.2 : 1.8, { foulCallRate: gameState.refFoulRate ?? 1.08 });
   if (Math.random() < foulProb) {
     const ftPct = handler.freeThrow / 100;
     const fts = shotType === 'three' ? 3 : 2;
@@ -63,7 +63,7 @@ export function simulatePossession(
   const quality = calculateShotQuality(
     shotType === 'close' ? handler.closeShot : shotType === 'mid' ? handler.midRange : handler.threePoint,
     spacing,
-    (handler.fitScore * 0.05) + 8.5,
+    (handler.fitScore * 0.05) + 9.0,
     defAttr,
     Math.max(0, (handler.minutesPlayed - 30) * 0.8),
   ) + normalRandom(0, 7.0);
@@ -84,7 +84,7 @@ export function simulatePossession(
     };
   }
 
-  const offRebProb = calculateOffensiveReboundProbability(40, 60, defenseScheme.zoneRate > 0.5 ? 0.92 : 1, 0.90 + normalRandom(0, 0.02));
+  const offRebProb = calculateOffensiveReboundProbability(34, 66, defenseScheme.zoneRate > 0.5 ? 0.88 : 0.94, 0.86 + normalRandom(0, 0.015));
   const reboundedOffense = Math.random() < offRebProb;
   return {
     points: 0,
