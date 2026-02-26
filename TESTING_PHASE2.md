@@ -38,6 +38,9 @@ Use `.ts` (not `.tsn`):
 
 ```powershell
 npm run verify:phase2
+# full 36-week simulation (slower)
+$env:VERIFY_PHASE2_FULL="1"; npm run verify:phase2
+Remove-Item Env:VERIFY_PHASE2_FULL
 ```
 
 Equivalent direct command:
@@ -71,5 +74,17 @@ If you see a missing migration directory error, make sure your migrations folder
 Then rerun:
 
 ```powershell
+npx prisma migrate dev --name phase2_backend
+```
+
+
+## 1c) If Prisma migrate reports P3006 with `type "TeamTier" already exists`
+
+This means a duplicate init migration tried to recreate baseline types in the shadow DB.
+Update to latest `main` (which contains a no-op placeholder for `20260226005212_init`) and rerun:
+
+```powershell
+git fetch origin
+git reset --hard origin/main
 npx prisma migrate dev --name phase2_backend
 ```

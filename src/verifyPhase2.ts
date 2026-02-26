@@ -1,25 +1,49 @@
 import { prisma } from './api/routes/_db';
-import { runFullRecruitingCycle } from './systems/recruiting/calendar';
 import { runPostseasonPortalEvaluation } from './systems/portal/entry';
 import { runPortalMarketplace } from './systems/portal/marketplace';
 import { recalculateAllNILBudgets } from './systems/nil/collective';
 import { runAINILAllocation } from './systems/nil/contracts';
 import { applyFatigueToAllTeams } from './systems/nil/boosterFatigue';
 import { runTamperingAudits } from './systems/portal/tampering';
+import { advanceRecruitingWeek, runFullRecruitingCycle } from './systems/recruiting/calendar';
 
 async function main() {
   const season = 1;
+  const fullMode = process.env.VERIFY_PHASE2_FULL === '1';
   console.log('=== Phase 2 verification start ===');
+  console.log(`Mode: ${fullMode ? 'FULL (36 weeks)' : 'FAST (6 weeks)'}`);
 
+  console.log('[1/6] Recalculating NIL budgets...');
   await recalculateAllNILBudgets(season);
   const teams = await prisma.team.findMany({ select: { id: true } });
+
+  console.log('[2/6] Running AI NIL allocation (sample teams)...');
   for (const t of teams.slice(0, 40)) await runAINILAllocation(t.id, season);
 
-  const recruitingSummary = await runFullRecruitingCycle(season);
+  console.log('[3/6] Running recruiting simulation...');
+  const recruitingSummary = fullMode
+    ? await runFullRecruitingCycle(season)
+    : {
+        season,
+        weeks: await (async () => {
+          const weeks = [];
+          for (let week = 1; week <= 6; week += 1) {
+            weeks.push(await advanceRecruitingWeek(season, week));
+            console.log(`  - completed week ${week}/6`);
+          }
+          return weeks;
+        })(),
+      };
+
+  console.log('[4/6] Running portal evaluation + marketplace...');
   const portalEntries = await runPostseasonPortalEvaluation(season);
   const portalMarketplace = await runPortalMarketplace(season);
+
+  console.log('[5/6] Applying booster fatigue + tampering audits...');
   await applyFatigueToAllTeams(season);
   const tampering = await runTamperingAudits(season);
+
+  console.log('[6/6] Aggregating summary metrics...');
 
   const db = prisma as any;
   const recruitsByType = await db.recruit.groupBy({ by: ['type', 'starRating'], where: { season }, _count: true });
