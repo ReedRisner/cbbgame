@@ -1,0 +1,1 @@
+export default function ActivityFeed(){return <div className="card">Portal activity feed</div>}

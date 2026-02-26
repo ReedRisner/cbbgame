@@ -1,0 +1,1 @@
+export default function PortalHub(){return <div className="card"><h2 className="text-xl font-semibold">Transfer Portal Dashboard</h2></div>}

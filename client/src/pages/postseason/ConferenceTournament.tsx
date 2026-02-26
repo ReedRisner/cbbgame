@@ -1,0 +1,1 @@
+export default function ConferenceTournament(){return <div className="card">Conference Tournament Bracket</div>}

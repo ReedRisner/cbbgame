@@ -1,0 +1,1 @@
+export default function NILHub(){return <div className="card">NIL Dashboard</div>}

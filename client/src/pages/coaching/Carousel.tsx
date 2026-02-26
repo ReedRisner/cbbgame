@@ -1,0 +1,1 @@
+export default function Carousel(){return <div className="card">Coaching carousel</div>}

@@ -1,0 +1,1 @@
+export default function HotSeat(){return <div className="card">Hot seat tracker</div>}

@@ -1,0 +1,1 @@
+export default function Bracketology(){return <div className="card">Bracketology view</div>}

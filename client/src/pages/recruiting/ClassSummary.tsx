@@ -1,0 +1,1 @@
+export default function ClassSummary(){return <div className="card"><h2 className="text-xl font-semibold">Class Summary</h2><p className="text-slate-300 mt-2">National rank, average stars, and positional needs analysis.</p></div>}

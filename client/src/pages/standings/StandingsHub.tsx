@@ -1,0 +1,1 @@
+export default function StandingsHub(){return <div className="card">Standings by conference</div>}
