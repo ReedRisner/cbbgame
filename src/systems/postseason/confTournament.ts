@@ -1,7 +1,12 @@
 import { prisma } from '../../api/routes/_db';
 
 export type ConfTournamentBracket = { conferenceId: number; season: number; seeds: number[]; format: string; };
-export type ConfTournamentResult = { conferenceId: number; championTeamId: number; };
+export type ConfTournamentResult = { conferenceId: number; championTeamId?: number; skipped: boolean; reason?: string };
+
+export function pickChampionFromSeeds(seeds: number[]): number | null {
+  if (seeds.length === 0) return null;
+  return seeds[0] ?? null;
+}
 
 export async function generateConfTournamentBracket(conferenceId: number, season: number): Promise<ConfTournamentBracket> {
   const teams = await prisma.team.findMany({ where: { conferenceId }, orderBy: { currentPrestige: 'desc' } });
@@ -18,11 +23,19 @@ export async function generateConfTournamentBracket(conferenceId: number, season
 
 export async function simulateConfTournament(conferenceId: number, season: number): Promise<ConfTournamentResult> {
   const bracket = await generateConfTournamentBracket(conferenceId, season);
-  const championTeamId = bracket.seeds[0];
+  const championTeamId = pickChampionFromSeeds(bracket.seeds);
+  if (!championTeamId) {
+    return {
+      conferenceId,
+      skipped: true,
+      reason: `Conference ${conferenceId} has no teams for season ${season}`,
+    };
+  }
+
   await prisma.postseasonResult.upsert({
     where: { season_teamId_tournament: { season, teamId: championTeamId, tournament: 'CONF_TOURNEY' } },
     update: { result: 'Champion' },
     create: { season, teamId: championTeamId, tournament: 'CONF_TOURNEY', result: 'Champion' },
   });
-  return { conferenceId, championTeamId };
+  return { conferenceId, championTeamId, skipped: false };
 }

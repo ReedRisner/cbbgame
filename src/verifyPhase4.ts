@@ -12,6 +12,7 @@ async function main() {
   console.log('[Schedule] total games', schedule.totalGames);
   console.log('[Schedule] games/team min-max', min, max);
   console.log('[Schedule] conflicts', schedule.conflicts);
+  console.log('[Schedule] outlier teams', schedule.outlierTeams.length, schedule.outlierTeams.slice(0, 20));
   console.log('[Schedule] MTE count', await prisma.mteEvent.count({ where: { season } }));
 
   const seasonResult = await runFullSeason(season);
