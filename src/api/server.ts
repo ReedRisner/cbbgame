@@ -11,6 +11,11 @@ import recruitingRouter from './routes/recruiting';
 import portalRouter from './routes/portal';
 import nilRouter from './routes/nil';
 import tamperingRouter from './routes/tampering';
+import gameRouter from './routes/game';
+import coachingPhase3Router from './routes/coaching';
+import playstyleRouter from './routes/playstyle';
+import moraleRouter from './routes/morale';
+import seasonRouter from './routes/season';
 
 const app = express();
 app.use(cors());
@@ -28,6 +33,11 @@ app.use('/api/recruiting', recruitingRouter);
 app.use('/api/portal', portalRouter);
 app.use('/api/nil', nilRouter);
 app.use('/api/tampering', tamperingRouter);
+app.use('/api/game', gameRouter);
+app.use('/api/coaching', coachingPhase3Router);
+app.use('/api/playstyle', playstyleRouter);
+app.use('/api/morale', moraleRouter);
+app.use('/api/season', seasonRouter);
 
 const port = Number(process.env.PORT ?? 4000);
 app.listen(port, () => {
