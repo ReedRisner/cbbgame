@@ -13,5 +13,7 @@ export async function getCoachEffects(coachId: number): Promise<CoachEffects> {
     loyaltyModifier: coach.programBuilding / 100,
     ambitionModifier: coach.programBuilding / 100,
     ethicsModifier: coach.integrity / 100,
+    recruitingModifier: (coach.recruiting - 50) * 0.1,
+    charismaModifier: (coach.charisma - 50) * 0.08,
   };
 }

@@ -8,6 +8,8 @@ export type CoachEffects = {
   loyaltyModifier: number;
   ambitionModifier: number;
   ethicsModifier: number;
+  recruitingModifier: number;
+  charismaModifier: number;
 };
 
 export type PlayerGameState = {
