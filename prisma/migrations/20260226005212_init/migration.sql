@@ -1,0 +1,7 @@
+-- This migration intentionally left as a no-op.
+-- Reason: the original initial schema migration already exists in
+-- prisma/migrations/20260225231550_init/migration.sql.
+--
+-- This placeholder file exists to satisfy environments that previously
+-- referenced this timestamped migration directory (avoiding P3015 missing file errors)
+-- without re-running duplicate CREATE TYPE / CREATE TABLE statements (avoiding P3006).
