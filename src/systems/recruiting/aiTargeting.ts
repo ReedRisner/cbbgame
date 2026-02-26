@@ -1,4 +1,5 @@
 import { prisma } from '../../api/routes/_db';
+import { scheduleVisit } from './visits';
 
 export type RecruitBoardEntry = { recruitId: number; priorityRank: number; scoutingInvestment: number; priorityScore: number };
 
@@ -54,6 +55,9 @@ export async function runAIRecruiting(teamId: number, season: number, week: numb
     })),
   });
 
+  const inUnofficialWindow = week >= 9 && week <= 24;
+  const inOfficialWindow = week >= 17 && week <= 33;
+
   for (const entry of board) {
     await prisma.recruitScouting.upsert({
       where: { recruitId_teamId_season: { recruitId: entry.recruitId, teamId, season } },
@@ -67,17 +71,21 @@ export async function runAIRecruiting(teamId: number, season: number, week: numb
       update: { investmentLevel: entry.scoutingInvestment },
     });
 
-    if (entry.priorityRank <= 5 && week >= 17) {
-      await prisma.recruitVisit.create({
-        data: {
-          recruitId: entry.recruitId,
-          teamId,
-          visitType: 'OFFICIAL',
-          season,
-          week,
-          boostApplied: 0,
-        },
-      }).catch(() => undefined);
+    const interest = await prisma.recruitInterest.findUnique({
+      where: { recruitId_teamId_season: { recruitId: entry.recruitId, teamId, season } },
+      select: { interestLevel: true },
+    });
+    const interestLevel = interest?.interestLevel ?? 40;
+
+    if (inOfficialWindow && entry.priorityRank <= 3 && interestLevel >= 60 && week % 4 === 1) {
+      await scheduleVisit(entry.recruitId, teamId, 'official', week).catch(() => undefined);
+    }
+
+    if (inUnofficialWindow && entry.priorityRank <= 12 && interestLevel >= 35) {
+      const chance = entry.priorityRank <= 5 ? 0.35 : 0.15;
+      if (Math.random() < chance && week % 2 === 0) {
+        await scheduleVisit(entry.recruitId, teamId, 'unofficial', week).catch(() => undefined);
+      }
     }
   }
 }
