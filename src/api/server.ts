@@ -16,6 +16,9 @@ import coachingPhase3Router from './routes/coaching';
 import playstyleRouter from './routes/playstyle';
 import moraleRouter from './routes/morale';
 import seasonRouter from './routes/season';
+import scheduleRouter from './routes/schedule';
+import standingsRouter from './routes/standings';
+import postseasonRouter from './routes/postseason';
 
 const app = express();
 app.use(cors());
@@ -38,6 +41,9 @@ app.use('/api/coaching', coachingPhase3Router);
 app.use('/api/playstyle', playstyleRouter);
 app.use('/api/morale', moraleRouter);
 app.use('/api/season', seasonRouter);
+app.use('/api/schedule', scheduleRouter);
+app.use('/api/standings', standingsRouter);
+app.use('/api/postseason', postseasonRouter);
 
 const port = Number(process.env.PORT ?? 4000);
 app.listen(port, () => {
