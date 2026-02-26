@@ -138,6 +138,53 @@ enum InjurySeverity {
   SERIOUS
 }
 
+enum PrestigeTier {
+  ELITE
+  HIGH
+  MID
+  LOW
+}
+
+enum BubbleStatus {
+  LOCK
+  IN
+  LAST_FOUR_IN
+  FIRST_FOUR_OUT
+  OUT
+}
+
+enum ConferenceTournamentFormat {
+  SINGLE_ELIM_8
+  SINGLE_ELIM_12_BYES
+  SINGLE_ELIM_16
+  SINGLE_ELIM_16_PLAYIN
+}
+
+enum TournamentRegion {
+  SOUTH
+  EAST
+  MIDWEST
+  WEST
+}
+
+enum RoundEliminated {
+  R64
+  R32
+  S16
+  E8
+  F4
+  CG
+  CHAMPION
+}
+
+enum PostseasonTournament {
+  NCAA
+  NIT
+  CBI
+  CIT
+  CONF_TOURNEY
+}
+
 model Conference {
   id                     Int      @id @default(autoincrement())
   name                   String   @unique
@@ -154,6 +201,9 @@ model Conference {
   rankingsHistory        RankingsHistory[]
   membershipHistory      ConferenceMembershipHistory[]
   schedules              Schedule[]
+  apVoterBias1           ApVoter[] @relation("ApVoterBias1")
+  apVoterBias2           ApVoter[] @relation("ApVoterBias2")
+  conferenceTournaments  ConferenceTournament[]
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -211,6 +261,17 @@ model Team {
   coachingBuyouts             CoachingBuyout[]
   gamePossessions             GamePossession[]
   teamLineups                 TeamLineup[]
+  mteParticipants             MteParticipant[]
+  apPolls                     ApPoll[]
+  coachesPolls                CoachesPoll[]
+  netRankings                 NetRanking[]
+  efficiencyRatings           EfficiencyRating[]
+  bracketologyEntries         Bracketology[]
+  ncaaTournamentEntries       NcaaTournament[]
+  nitTournamentEntries        NitTournament[]
+  postseasonResults           PostseasonResult[]
+  rivalryTeam1History         RivalryHistory[] @relation("RivalryTeam1")
+  rivalryTeam2History         RivalryHistory[] @relation("RivalryTeam2")
   annualNilBudget             Float   @default(0)
   cumulativeSpending3yr       Float   @default(0)
   fatigueModifier             Float   @default(0)
@@ -669,6 +730,11 @@ model SeasonRecord {
   tournamentWins  Int
   postseasonRound String?
   apPeakRank      Int?
+  sos             Float?
+  ncaaSeed        Int?
+  ncaaResult      String?
+  confTourneyResult String?
+  last10Record    String?
   team            Team     @relation(fields: [teamId], references: [id])
 }
 
@@ -726,9 +792,178 @@ model Schedule {
   awayTeamId      Int
   isConferenceGame Boolean
   isTournamentGame Boolean
+  mteId           Int?
+  rivalryIntensity Float?
+  quad            String?
   conference      Conference? @relation(fields: [conferenceId], references: [id])
+  mteEvent        MteEvent? @relation(fields: [mteId], references: [id])
   homeTeam        Team     @relation("ScheduleHome", fields: [homeTeamId], references: [id])
   awayTeam        Team     @relation("ScheduleAway", fields: [awayTeamId], references: [id])
+}
+
+model MteEvent {
+  id           Int      @id @default(autoincrement())
+  name         String
+  season       Int
+  prestigeTier PrestigeTier
+  location     String
+  neutralSite  Boolean  @default(true)
+  participants MteParticipant[]
+  schedules    Schedule[]
+}
+
+model MteParticipant {
+  id      Int @id @default(autoincrement())
+  mteId   Int
+  teamId  Int
+  seed    Int
+  mte     MteEvent @relation(fields: [mteId], references: [id])
+  team    Team @relation(fields: [teamId], references: [id])
+
+  @@unique([mteId, teamId])
+}
+
+model ApPoll {
+  id               Int @id @default(autoincrement())
+  season           Int
+  week             Int
+  teamId           Int
+  rank             Int
+  points           Int
+  firstPlaceVotes  Int @default(0)
+  prevRank         Int?
+  team             Team @relation(fields: [teamId], references: [id])
+
+  @@unique([season, week, teamId])
+}
+
+model CoachesPoll {
+  id      Int @id @default(autoincrement())
+  season  Int
+  week    Int
+  teamId  Int
+  rank    Int
+  points  Int
+  prevRank Int?
+  team    Team @relation(fields: [teamId], references: [id])
+
+  @@unique([season, week, teamId])
+}
+
+model NetRanking {
+  id            Int @id @default(autoincrement())
+  season        Int
+  week          Int
+  teamId        Int
+  netRank       Int
+  netScore      Float
+  quad1Record   String
+  quad2Record   String
+  quad3Record   String
+  quad4Record   String
+  team          Team @relation(fields: [teamId], references: [id])
+
+  @@unique([season, week, teamId])
+}
+
+model EfficiencyRating {
+  id             Int @id @default(autoincrement())
+  season         Int
+  week           Int
+  teamId         Int
+  adjOffEff      Float
+  adjDefEff      Float
+  overallRating  Float
+  tempo          Float
+  team           Team @relation(fields: [teamId], references: [id])
+
+  @@unique([season, week, teamId])
+}
+
+model Bracketology {
+  id              Int @id @default(autoincrement())
+  season          Int
+  week            Int
+  teamId          Int
+  resumeScore     Float
+  projectedSeed   Int?
+  projectedRegion TournamentRegion?
+  bubbleStatus    BubbleStatus
+  team            Team @relation(fields: [teamId], references: [id])
+
+  @@unique([season, week, teamId])
+}
+
+model ApVoter {
+  id                         Int @id @default(autoincrement())
+  name                       String
+  conferenceBias1Id          Int?
+  conferenceBias1Strength    Float?
+  conferenceBias2Id          Int?
+  conferenceBias2Strength    Float?
+  preseasonWeight            Float
+  conferenceBias1            Conference? @relation("ApVoterBias1", fields: [conferenceBias1Id], references: [id])
+  conferenceBias2            Conference? @relation("ApVoterBias2", fields: [conferenceBias2Id], references: [id])
+}
+
+model ConferenceTournament {
+  id            Int @id @default(autoincrement())
+  conferenceId  Int
+  season        Int
+  format        ConferenceTournamentFormat
+  bracketJson   Json
+  conference    Conference @relation(fields: [conferenceId], references: [id])
+
+  @@unique([conferenceId, season])
+}
+
+model NcaaTournament {
+  id               Int @id @default(autoincrement())
+  season           Int
+  region           TournamentRegion
+  seed             Int
+  teamId           Int
+  roundEliminated  RoundEliminated?
+  bracketPosition  String
+  team             Team @relation(fields: [teamId], references: [id])
+
+  @@unique([season, region, bracketPosition])
+}
+
+model NitTournament {
+  id              Int @id @default(autoincrement())
+  season          Int
+  teamId          Int
+  seed            Int
+  roundEliminated RoundEliminated?
+  team            Team @relation(fields: [teamId], references: [id])
+
+  @@unique([season, teamId])
+}
+
+model PostseasonResult {
+  id          Int @id @default(autoincrement())
+  season      Int
+  teamId      Int
+  tournament  PostseasonTournament
+  result      String
+  team        Team @relation(fields: [teamId], references: [id])
+
+  @@unique([season, teamId, tournament])
+}
+
+model RivalryHistory {
+  id              Int @id @default(autoincrement())
+  team1Id         Int
+  team2Id         Int
+  season          Int
+  team1Wins       Int
+  team2Wins       Int
+  intensityDelta  Float
+  team1           Team @relation("RivalryTeam1", fields: [team1Id], references: [id])
+  team2           Team @relation("RivalryTeam2", fields: [team2Id], references: [id])
+
+  @@unique([team1Id, team2Id, season])
 }
 
 model CoachingHotSeat {
