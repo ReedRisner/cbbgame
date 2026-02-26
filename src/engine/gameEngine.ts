@@ -49,7 +49,7 @@ export async function simulateGame(homeTeamId: number, awayTeamId: number, conte
   } catch {
     hca = context.neutralSite ? 0 : 3.5;
   }
-  const targetPossessions = Math.round(((context.homeScheme.possessionsPerGame + context.awayScheme.possessionsPerGame) / 2) * 0.9);
+  const targetPossessions = Math.round(((context.homeScheme.possessionsPerGame + context.awayScheme.possessionsPerGame) / 2) * 0.95);
 
   const home: TeamTotals = { points: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, turnovers: 0, rebounds: 0, assists: 0, fouls: 0 };
   const away: TeamTotals = { points: 0, fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, turnovers: 0, rebounds: 0, assists: 0, fouls: 0 };
@@ -102,7 +102,7 @@ export async function simulateGame(homeTeamId: number, awayTeamId: number, conte
     offense = p.reboundedOffense ? offense : (offense === 'home' ? 'away' : 'home');
   }
 
-  const dampenedHca = Math.max(0, Math.min(2.2, hca * 0.45));
+  const dampenedHca = Math.max(0, Math.min(1.6, hca * 0.33));
   home.points += Math.round(dampenedHca + normalRandom(0, 1.0));
 
   const homeRating = context.homeLineup.slice(0, 8).reduce((s, p) => s + p.overall, 0) / Math.max(1, Math.min(8, context.homeLineup.length));
@@ -112,7 +112,7 @@ export async function simulateGame(homeTeamId: number, awayTeamId: number, conte
     const underdogIsHome = ratingDiff < 0;
     const underdogLineup = underdogIsHome ? context.homeLineup : context.awayLineup;
     const underdogComp = underdogLineup.slice(0, 8).reduce((s, p) => s + p.competitiveness, 0) / Math.max(1, Math.min(8, underdogLineup.length));
-    const upsetPush = Math.max(0, (underdogComp - 60) * 0.3) * 0.35 + Math.max(0, normalRandom(0, 2.8));
+    const upsetPush = Math.max(0, (underdogComp - 60) * 0.3) * 0.11 + Math.max(0, normalRandom(0, 1.1));
     if (underdogIsHome) home.points += Math.round(upsetPush);
     else away.points += Math.round(upsetPush);
   }
