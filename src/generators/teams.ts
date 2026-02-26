@@ -68,9 +68,12 @@ export function generateTeams(): TeamSeed[] {
       historicalPrestige: clampedNormal(r.hist[0], r.hist[1], r.hist[2], 99),
       facilityRating: clampedNormal(r.facility[0], r.facility[1], r.facility[2], 97),
       nilCollectiveStrength: clampedNormal((r.prestige[0] + 5), 10, 20, 99),
-      boosterBudget: clampedNormal(tier === 'POWER4' ? 85 : tier === 'UPPER_MID' ? 68 : tier === 'MID' ? 55 : 40, 12, 15, 99),
-      mediaMarket: clampedNormal(tier === 'POWER4' ? 78 : tier === 'UPPER_MID' ? 63 : tier === 'MID' ? 50 : 35, 14, 10, 99),
-      fanIntensity: clampedNormal(tier === 'POWER4' ? 81 : tier === 'UPPER_MID' ? 69 : tier === 'MID' ? 57 : 46, 10, 20, 99),
+      // Phase 2 NIL calibration: widened tier separation to better approximate the target ~200:1
+      // annual budget ratio between top blue-blood programs and low-major programs while still
+      // preserving overlap via normal sampling noise.
+      boosterBudget: clampedNormal(tier === 'POWER4' ? 94 : tier === 'UPPER_MID' ? 70 : tier === 'MID' ? 34 : 7, 10, 4, 99),
+      mediaMarket: clampedNormal(tier === 'POWER4' ? 86 : tier === 'UPPER_MID' ? 60 : tier === 'MID' ? 38 : 14, 14, 4, 99),
+      fanIntensity: clampedNormal(tier === 'POWER4' ? 88 : tier === 'UPPER_MID' ? 64 : tier === 'MID' ? 43 : 18, 12, 4, 99),
       arenaCapacity: Math.round(clampedNormal(tier === 'POWER4' ? 16500 : tier === 'UPPER_MID' ? 12000 : tier === 'MID' ? 9000 : 6500, 2400, 3500, 25000)),
       academicRating: clampedNormal(62, 16, 20, 99),
       primaryColor: `#${t.colors[0]}`,
