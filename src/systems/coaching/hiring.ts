@@ -2,13 +2,22 @@ import { prisma } from '../../api/routes/_db';
 import { calculateHireScore } from '../../formulas/coaching';
 import { clampedNormal } from '../../utils/random';
 
+function sigmoid(x: number): number {
+  return 1 / (1 + Math.exp(-x));
+}
+
+function acceptProbability(jobPrestige: number, currentPrestige: number, unemployed: boolean): number {
+  if (unemployed) return jobPrestige > 30 ? 0.9 : 0.5;
+  return sigmoid((jobPrestige - currentPrestige - 10) / 5);
+}
+
 export async function runCoachHiring(teamId: number, season: number): Promise<{ hiredCoachId: number | null }> {
   const team = await prisma.team.findUniqueOrThrow({ where: { id: teamId } });
   const fired = await prisma.coach.findMany({ where: { role: 'HEAD', buyoutStatus: true } });
   const assistants = await prisma.coach.findMany({ where: { role: { not: 'HEAD' }, programBuilding: { gt: 50 } } });
   const pool = [...fired, ...assistants];
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 7; i += 1) {
     pool.push(await prisma.coach.create({ data: {
       teamId,
       role: 'OC',
@@ -26,25 +35,35 @@ export async function runCoachHiring(teamId: number, season: number): Promise<{ 
     } }));
   }
 
-  let best: { id: number; score: number } | null = null;
-  for (const candidate of pool) {
-    const score = calculateHireScore({
-      winRecord: candidate.careerWins + candidate.careerLosses > 0 ? (candidate.careerWins / (candidate.careerWins + candidate.careerLosses)) * 100 : 50,
-      recruitingSkill: candidate.recruiting,
-      charisma: candidate.charisma,
-      schemeFit: candidate.offense,
-      loyalty: candidate.programBuilding,
-      prestigeMatch: 100 - Math.abs(team.currentPrestige - candidate.overall),
-      cost: Math.max(0, 100 - (candidate.salary / 100_000)),
-    }, { prestige: team.currentPrestige });
+  const ranked = pool
+    .map((candidate) => ({
+      candidate,
+      score: calculateHireScore({
+        winRecord: candidate.careerWins + candidate.careerLosses > 0 ? (candidate.careerWins / (candidate.careerWins + candidate.careerLosses)) * 100 : 50,
+        recruitingSkill: candidate.recruiting,
+        charisma: candidate.charisma,
+        schemeFit: candidate.offense,
+        loyalty: candidate.programBuilding,
+        prestigeMatch: 100 - Math.abs(team.currentPrestige - candidate.overall),
+        cost: Math.max(0, 100 - (candidate.salary / 100_000)),
+      }, { prestige: team.currentPrestige }),
+    }))
+    .sort((a, b) => b.score - a.score);
 
-    if (!best || score > best.score) best = { id: candidate.id, score };
+  for (const { candidate, score } of ranked) {
+    const unemployed = candidate.buyoutStatus;
+    const currentPrestige = (await prisma.team.findUnique({ where: { id: candidate.teamId }, select: { currentPrestige: true } }))?.currentPrestige ?? 30;
+    const p = acceptProbability(team.currentPrestige, currentPrestige, unemployed);
+    await prisma.coachJobOffer.create({ data: { coachId: candidate.id, teamId, season, hireScore: score, status: 'PENDING', salaryOffered: 1_500_000, yearsOffered: 4 } });
+    if (Math.random() < p) {
+      await prisma.coach.update({ where: { id: candidate.id }, data: { role: 'HEAD', teamId, buyoutStatus: false } });
+      await prisma.coachJobOffer.updateMany({ where: { coachId: candidate.id, teamId, season, status: 'PENDING' }, data: { status: 'ACCEPTED' } });
+      return { hiredCoachId: candidate.id };
+    }
+    await prisma.coachJobOffer.updateMany({ where: { coachId: candidate.id, teamId, season, status: 'PENDING' }, data: { status: 'REJECTED' } });
   }
 
-  if (!best) return { hiredCoachId: null };
-  await prisma.coach.update({ where: { id: best.id }, data: { role: 'HEAD', teamId, buyoutStatus: false } });
-  await prisma.coachJobOffer.create({ data: { coachId: best.id, teamId, season, hireScore: best.score, status: 'ACCEPTED', salaryOffered: 1_500_000, yearsOffered: 4 } });
-  return { hiredCoachId: best.id };
+  return { hiredCoachId: null };
 }
 
 export async function runAllHiring(season: number): Promise<{ hired: number }> {

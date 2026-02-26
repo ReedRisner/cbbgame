@@ -29,12 +29,16 @@ export async function calculateHotSeat(coachId: number, season: number): Promise
   const rank = teams.findIndex((t) => t.id === coach.teamId) + 1;
   const expectedWins = projectExpectedWins(rank > 0 ? rank : 180);
   const rec = await prisma.seasonRecord.findFirst({ where: { season, teamId: coach.teamId } });
-  const actualWins = rec?.wins ?? 0;
+  const actualWins = rec ? rec.wins : expectedWins;
   const winGap = Math.max(0, expectedWins - actualWins);
   const fanPressure = (coach.team.fanIntensity / 100) * winGap;
   const scandalPenalty = (await prisma.sanction.aggregate({ where: { teamId: coach.teamId, season }, _sum: { severity: true } }))._sum.severity ?? 0;
-  const hotSeatScore = calculateHotSeatScore({ expectedWins, actualWins, fanPressure, scandalPenalty, tourneyDisappointment: 0, consecutiveUnderperformYears: coach.hotSeatYears });
+
+  const consecutive = actualWins < expectedWins ? coach.hotSeatYears + 1 : 0;
+  const hotSeatScore = calculateHotSeatScore({ expectedWins, actualWins, fanPressure, scandalPenalty, tourneyDisappointment: 0, consecutiveUnderperformYears: consecutive });
   const firingProbability = calculateFiringProbability(hotSeatScore, thresholdForPrestige(coach.team.currentPrestige));
+
+  await prisma.coach.update({ where: { id: coachId }, data: { hotSeatYears: consecutive } });
 
   await prisma.coachingHotSeat.upsert({
     where: { coachId_season: { coachId, season } },

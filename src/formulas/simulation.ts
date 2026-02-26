@@ -9,23 +9,26 @@ export function calculateShotQuality(baseSkill: number, spacing: number, schemeB
 }
 
 export function calculateMakeProbability(shotType: 'close' | 'mid' | 'three', shotQuality: number): number {
-  const basePct = shotType === 'close' ? 0.56 : shotType === 'mid' ? 0.4 : 0.35;
+  const basePct = shotType === 'close' ? 0.58 : shotType === 'mid' ? 0.4 : 0.34;
   return Math.max(0.05, Math.min(0.95, basePct * (1 + (shotQuality - 50) * 0.008)));
 }
 
-export function calculateTurnoverProbability(press: number, defIntensity: number, ballSecurity: number): number {
-  const probability = 0.14 * (1 + press + defIntensity - ballSecurity);
-  return Math.max(0.03, Math.min(0.45, probability));
+export function calculateTurnoverProbability(pressFrequency: number, oppDefAggression: number, ballHandlerRating: number): number {
+  const pressAdjust = pressFrequency * 0.003;
+  const defIntensity = (oppDefAggression - 50) * 0.002;
+  const ballSecurity = (ballHandlerRating - 50) * 0.003;
+  const probability = 0.14 * (1 + pressAdjust + defIntensity - ballSecurity);
+  return Math.max(0.05, Math.min(0.30, probability));
 }
 
 export function calculateFoulProbability(defAggression: number, foulProne: number, driveRate: number, refProfile: { foulCallRate: number }): number {
   const probability = 0.08 * (defAggression * 0.01) * (foulProne * 0.008) * (driveRate * 1.2) * refProfile.foulCallRate;
-  return Math.max(0.01, Math.min(0.5, probability));
+  return Math.max(0.01, Math.min(0.35, probability));
 }
 
 export function calculateOffensiveReboundProbability(teamOffReb: number, oppDefReb: number, zoneBonus: number, hustle: number): number {
-  const base = teamOffReb / (teamOffReb + oppDefReb);
-  return Math.max(0.05, Math.min(0.6, base * zoneBonus * hustle));
+  const base = teamOffReb / Math.max(1, (teamOffReb + oppDefReb));
+  return Math.max(0.12, Math.min(0.48, base * zoneBonus * hustle));
 }
 
 export function calculateHomeCourtAdvantage(fanInterest: number, altitudeFlag: number): number {

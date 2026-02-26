@@ -43,7 +43,7 @@ export async function simulateWeek(season: number, week: number): Promise<{ game
       getCoachEffects(homeCoach.id),
       getCoachEffects(awayCoach.id),
     ]);
-    const result = simulateGame(game.homeTeamId, game.awayTeamId, {
+    const result = await simulateGame(game.homeTeamId, game.awayTeamId, {
       season,
       week,
       isConference: game.isConferenceGame,

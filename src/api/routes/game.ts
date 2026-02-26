@@ -4,6 +4,12 @@ import { simulateWeek, simulateSeason } from '../../engine/batchSim';
 
 const router = Router();
 
+router.post('/simulate', async (req, res) => {
+  const { homeTeamId, awayTeamId, context } = req.body;
+  const { simulateGame } = await import('../../engine/gameEngine');
+  res.json(await simulateGame(Number(homeTeamId), Number(awayTeamId), context));
+});
+
 router.post('/simulate-week', async (req, res) => {
   const { season, week } = req.body;
   res.json(await simulateWeek(Number(season), Number(week)));
