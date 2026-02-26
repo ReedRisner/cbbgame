@@ -36,6 +36,52 @@ enum RecruitType {
   INTERNATIONAL
 }
 
+enum VisitType {
+  OFFICIAL
+  UNOFFICIAL
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  REVOKED
+}
+
+enum NilOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum NilContractStatus {
+  ACTIVE
+  VOIDED
+  EXPIRED
+  RENEGOTIATED
+}
+
+enum PortalWindow {
+  POSTSEASON
+  MIDSEASON
+}
+
+enum PortalReason {
+  PT_FRUSTRATION
+  NIL_GAP
+  COACH_CHANGE
+  SANCTIONS
+  PERSONALITY
+  BASE_RATE
+}
+
+enum PortalStatus {
+  ENTERED
+  COMMITTED
+  WITHDRAWN
+}
+
 enum DevelopmentCurve {
   EARLY_BLOOMER
   STANDARD
@@ -111,6 +157,18 @@ model Team {
   draftHistory                DraftHistory[]
   homeSchedules               Schedule[] @relation("ScheduleHome")
   awaySchedules               Schedule[] @relation("ScheduleAway")
+  recruitInterests            RecruitInterest[]
+  recruitVisits               RecruitVisit[]
+  recruitScouting             RecruitScouting[]
+  recruitOffers               RecruitOffer[]
+  nilOffers                   NilOffer[]
+  portalEntriesFrom           PortalEntry[] @relation("PortalFromTeam")
+  tamperingLogs               TamperingLog[]
+  teamRecruitingBoard         TeamRecruitingBoard[]
+  boosterFatigue              BoosterFatigueTracking[]
+  annualNilBudget             Float   @default(0)
+  cumulativeSpending3yr       Float   @default(0)
+  fatigueModifier             Float   @default(0)
   createdAt                   DateTime @default(now())
   updatedAt                   DateTime @updatedAt
 }
@@ -185,12 +243,18 @@ model Player {
   developmentCurve    DevelopmentCurve
   yearsRemaining      Int
   isRedshirt          Boolean  @default(false)
+  socialMediaRating   Float    @default(20)
+  transferCount       Int      @default(0)
+  visaDelayWeeks      Int      @default(0)
 
   gameStats           PlayerGameStat[]
   awards              Award[]
   nilContracts        NilContract[]
   transfers           Transfer[]
   draftHistory        DraftHistory[]
+  portalEntries       PortalEntry[]
+  tamperingLogs       TamperingLog[]
+  nilOffers           NilOffer[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -350,6 +414,16 @@ model Recruit {
   starRating          Int
   signedTeamId        Int?
   signedTeam          Team?    @relation(fields: [signedTeamId], references: [id])
+  recruitInterests    RecruitInterest[]
+  recruitVisits       RecruitVisit[]
+  recruitScouting     RecruitScouting[]
+  recruitOffers       RecruitOffer[]
+  nilOffers           NilOffer[]
+  teamRecruitingBoard TeamRecruitingBoard[]
+  personalityEgo      Float    @default(50)
+  personalityMaturity Float    @default(50)
+  personalityLoyalty  Float    @default(50)
+  nbaDraftInterest    Float    @default(50)
   createdAt           DateTime @default(now())
 }
 
@@ -360,6 +434,10 @@ model NilContract {
   season          Int
   annualValue     Float
   years           Int
+  signingBonus    Float    @default(0)
+  status          NilContractStatus @default(ACTIVE)
+  reason          String?
+  weeklyMoraleImpact Float @default(0)
   brandScore      Float
   player          Player   @relation(fields: [playerId], references: [id])
   team            Team     @relation(fields: [teamId], references: [id])
@@ -373,9 +451,127 @@ model Transfer {
   season          Int
   reason          String
   immediateEligible Boolean @default(false)
+  portalWindow    PortalWindow @default(POSTSEASON)
   player          Player   @relation(fields: [playerId], references: [id])
   fromTeam        Team     @relation("TransferFromTeam", fields: [fromTeamId], references: [id])
   toTeam          Team?    @relation("TransferToTeam", fields: [toTeamId], references: [id])
+}
+
+model RecruitInterest {
+  id              Int      @id @default(autoincrement())
+  recruitId       Int
+  teamId          Int
+  interestLevel   Float
+  lastUpdatedWeek Int
+  season          Int
+  recruit         Recruit  @relation(fields: [recruitId], references: [id])
+  team            Team     @relation(fields: [teamId], references: [id])
+
+  @@unique([recruitId, teamId, season])
+}
+
+model RecruitVisit {
+  id              Int      @id @default(autoincrement())
+  recruitId       Int
+  teamId          Int
+  visitType       VisitType
+  season          Int
+  week            Int
+  boostApplied    Float
+  recruit         Recruit   @relation(fields: [recruitId], references: [id])
+  team            Team      @relation(fields: [teamId], references: [id])
+}
+
+model RecruitScouting {
+  id                 Int    @id @default(autoincrement())
+  recruitId          Int
+  teamId             Int
+  investmentLevel    Float
+  currentUncertainty Float
+  season             Int
+  recruit            Recruit @relation(fields: [recruitId], references: [id])
+  team               Team    @relation(fields: [teamId], references: [id])
+
+  @@unique([recruitId, teamId, season])
+}
+
+model RecruitOffer {
+  id          Int      @id @default(autoincrement())
+  recruitId   Int
+  teamId      Int
+  season      Int
+  weekOffered Int
+  status      OfferStatus @default(PENDING)
+  recruit     Recruit  @relation(fields: [recruitId], references: [id])
+  team        Team     @relation(fields: [teamId], references: [id])
+
+  @@unique([recruitId, teamId, season])
+}
+
+model NilOffer {
+  id            Int      @id @default(autoincrement())
+  playerId      Int?
+  recruitId     Int?
+  teamId        Int
+  annualValue   Float
+  contractYears Int
+  signingBonus  Float
+  status        NilOfferStatus @default(PENDING)
+  season        Int
+  weekOffered   Int
+  player        Player?  @relation(fields: [playerId], references: [id])
+  recruit       Recruit? @relation(fields: [recruitId], references: [id])
+  team          Team     @relation(fields: [teamId], references: [id])
+}
+
+model PortalEntry {
+  id            Int      @id @default(autoincrement())
+  playerId      Int
+  fromTeamId    Int
+  season        Int
+  entryDateWeek Int
+  window        PortalWindow
+  reason        PortalReason
+  status        PortalStatus @default(ENTERED)
+  player        Player   @relation(fields: [playerId], references: [id])
+  fromTeam      Team     @relation("PortalFromTeam", fields: [fromTeamId], references: [id])
+}
+
+model TamperingLog {
+  id             Int      @id @default(autoincrement())
+  teamId         Int
+  playerId       Int
+  season         Int
+  riskScore      Float
+  audited        Boolean  @default(false)
+  caught         Boolean  @default(false)
+  penaltyApplied Boolean  @default(false)
+  team           Team     @relation(fields: [teamId], references: [id])
+  player         Player   @relation(fields: [playerId], references: [id])
+}
+
+model TeamRecruitingBoard {
+  id                 Int      @id @default(autoincrement())
+  teamId             Int
+  recruitId          Int
+  priorityRank       Int
+  scoutingInvestment Float
+  season             Int
+  team               Team     @relation(fields: [teamId], references: [id])
+  recruit            Recruit  @relation(fields: [recruitId], references: [id])
+
+  @@unique([teamId, recruitId, season])
+}
+
+model BoosterFatigueTracking {
+  id                   Int   @id @default(autoincrement())
+  teamId               Int
+  season               Int
+  cumulativeSpending3yr Float
+  fatigueModifier      Float
+  team                 Team  @relation(fields: [teamId], references: [id])
+
+  @@unique([teamId, season])
 }
 
 model Award {
