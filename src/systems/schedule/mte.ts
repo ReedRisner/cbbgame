@@ -46,8 +46,13 @@ export async function assignTeamsToMTEs(season: number): Promise<void> {
 
     const picks = bucket.slice(0, size);
     for (let i = 0; i < picks.length; i += 1) {
-      await prisma.mteParticipant.create({ data: { mteId: event.id, teamId: picks[i].id, seed: i + 1 } });
-      assigned.add(picks[i].id);
+      const teamId = picks[i].id;
+      await prisma.mteParticipant.upsert({
+        where: { mteId_teamId: { mteId: event.id, teamId } },
+        update: { seed: i + 1 },
+        create: { mteId: event.id, teamId, seed: i + 1 }
+      });
+      assigned.add(teamId);
     }
   }
 }

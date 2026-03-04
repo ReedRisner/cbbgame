@@ -23,9 +23,12 @@ async function main() {
   const eff = await prisma.efficiencyRating.findMany({ where: { season, week: 15 }, orderBy: { overallRating: 'desc' } });
   const bracket = await prisma.bracketology.findMany({ where: { season, week: 15 }, take: 68 });
 
+  const lowestEff = eff.length > 0 ? eff[eff.length - 1].overallRating : undefined;
+  const highestEff = eff.length > 0 ? eff[0].overallRating : undefined;
+
   console.log('[Rankings] AP top25', ap.length);
   console.log('[Rankings] NET rows', net);
-  console.log('[Rankings] Efficiency range', eff.at(-1)?.overallRating, eff[0]?.overallRating);
+  console.log('[Rankings] Efficiency range', lowestEff, highestEff);
   console.log('[Rankings] Bracket field', bracket.length);
 
   const confTourneys = await prisma.conferenceTournament.count({ where: { season } });
