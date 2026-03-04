@@ -49,6 +49,7 @@ import HotSeat from './pages/coaching/HotSeat';
 import Carousel from './pages/coaching/Carousel';
 import CoachingTree from './pages/coaching/CoachingTree';
 import TeamSelectModal from './components/TeamSelectModal';
+import PhaseTests from './pages/PhaseTests';
 
 export default function App() {
   return (
@@ -114,6 +115,7 @@ export default function App() {
             <Route path="/recruits" element={<RecruitBoard />} />
             <Route path="/recruits/:id" element={<RecruitDetail />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/phase-tests" element={<PhaseTests />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

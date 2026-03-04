@@ -17,7 +17,7 @@ export default function TopNav() {
 
   return (
     <div className="border-b border-slate-700 p-3 flex justify-between items-center">
-      <div className="text-slate-300">Phase 2–4 Frontend</div>
+      <div className="text-slate-300">Phase 1-4 Frontend</div>
       <div className="flex items-center gap-3">
         <button className="px-2 py-1 rounded bg-slate-700 text-sm" onClick={() => setConfirm(true)}>Change Team</button>
         <form onSubmit={(e) => { e.preventDefault(); nav(`/search?q=${encodeURIComponent(q)}`); }}>

@@ -13,6 +13,7 @@ const links = [
   ['/nil/contracts', 'NIL'],
   ['/coaching/staff', 'Coaching'],
   ['/postseason', 'Postseason'],
+  ['/phase-tests', 'Phase Tests'],
   ['/teams', 'Teams'],
   ['/conferences', 'Conferences'],
   ['/players', 'Players'],
